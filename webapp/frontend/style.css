@@ -5,12 +5,7 @@ box-sizing:border-box;
 font-family:'Inter',sans-serif;
 }
 
-body{
-background:#f5f7fb;
-color:#1f2a44;
-}
-
-/* NAVBAR */
+/* FIXED HEADER */
 
 .navbar{
 display:flex;
@@ -18,7 +13,19 @@ justify-content:space-between;
 align-items:center;
 padding:20px 60px;
 background:white;
-box-shadow:0 1px 4px rgba(0,0,0,0.05);
+box-shadow:0 2px 8px rgba(0,0,0,0.05);
+position:fixed;
+top:0;
+width:100%;
+z-index:1000;
+}
+
+/* Add spacing so content doesn't hide behind navbar */
+
+body{
+background:#f5f7fb;
+color:#1f2a44;
+padding-top:90px;
 }
 
 .logo{
@@ -148,4 +155,103 @@ display:flex;
 align-items:center;
 gap:6px;
 font-size:16px;
+}
+
+/* DIAGNOSTIC SECTION */
+
+.diagnostic{
+text-align:center;
+padding:90px 60px;
+}
+
+.diagnostic h2{
+font-size:40px;
+font-weight:700;
+margin-bottom:10px;
+}
+
+.subtitle{
+font-size:18px;
+color:#6b7280;
+margin-bottom:50px;
+}
+
+/* CARD GRID */
+
+.card-container{
+display:grid;
+grid-template-columns:repeat(4,1fr);
+gap:30px;
+max-width:1300px;
+margin:auto;
+}
+
+/* CARD */
+
+.card{
+background:#f8fafc;
+border-radius:18px;
+padding:35px;
+text-align:left;
+border:1px solid #e5e7eb;
+transition:0.3s;
+}
+
+.card:hover{
+transform:translateY(-5px);
+box-shadow:0 10px 25px rgba(0,0,0,0.06);
+}
+
+.card h3{
+margin-top:20px;
+font-size:22px;
+}
+
+.card p{
+margin-top:10px;
+color:#6b7280;
+line-height:1.6;
+}
+
+/* ICON */
+
+.icon{
+width:60px;
+height:60px;
+border-radius:14px;
+display:flex;
+align-items:center;
+justify-content:center;
+font-size:26px;
+}
+
+.icon.orange{
+background:#fde8c8;
+color:#f59e0b;
+}
+
+.icon.blue{
+background:#e6eef8;
+color:#2f5b8f;
+}
+
+/* TAG */
+
+.tag{
+display:inline-block;
+margin-top:20px;
+padding:6px 12px;
+border-radius:8px;
+font-size:14px;
+font-weight:500;
+}
+
+.tag.orange{
+background:#fde8c8;
+color:#f59e0b;
+}
+
+.tag.blue{
+background:#e6eef8;
+color:#2f5b8f;
 }
