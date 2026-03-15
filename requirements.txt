@@ -6,3 +6,9 @@ seaborn
 tensorflow
 opencv-python
 flask
+xgboost
+mlflow
+PyYAML
+joblib
+shap
+albumentations
