@@ -14,6 +14,39 @@ from src.utils import ensure_dir, load_config, set_global_seed, setup_logging
 LOGGER = logging.getLogger(__name__)
 
 
+def _normalize_binary_target(y: pd.Series, target_col: str) -> pd.Series:
+	"""Normalize binary target labels to integers {0, 1}."""
+	if pd.api.types.is_numeric_dtype(y):
+		unique_vals = set(pd.Series(y).dropna().unique().tolist())
+		if unique_vals.issubset({0, 1}):
+			return y.astype(int)
+
+	mapping = {
+		"0": 0,
+		"1": 1,
+		"no": 0,
+		"yes": 1,
+		"negative": 0,
+		"positive": 1,
+		"false": 0,
+		"true": 1,
+		"normal": 0,
+		"abnormal": 1,
+	}
+
+	y_str = y.astype(str).str.strip().str.lower()
+	y_mapped = y_str.map(mapping)
+
+	if y_mapped.isna().any():
+		bad_values = sorted(set(y_str[y_mapped.isna()].tolist()))
+		raise ValueError(
+			f"Target column '{target_col}' contains unsupported labels: {bad_values}. "
+			"Expected binary values like 0/1, No/Yes, Negative/Positive."
+		)
+
+	return y_mapped.astype(int)
+
+
 def preprocess_clinical_data(config_path: str = "config/config.yaml") -> Tuple[pd.DataFrame, pd.DataFrame, pd.Series, pd.Series]:
 	"""Clean clinical data and return train/test split."""
 	config = load_config(config_path)
@@ -38,7 +71,7 @@ def preprocess_clinical_data(config_path: str = "config/config.yaml") -> Tuple[p
 	if target_col not in df.columns:
 		raise ValueError(f"Target column '{target_col}' not found in dataset")
 
-	y = df[target_col]
+	y = _normalize_binary_target(df[target_col], target_col)
 	X = df.drop(columns=[target_col])
 
 	# Missing value handling split by dtype.
