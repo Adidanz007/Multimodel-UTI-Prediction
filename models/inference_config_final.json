@@ -1,0 +1,40 @@
+{
+  "model_version": "2.0",
+  "project": "Multimodal UTI Prediction",
+  "institute": "M S Ramaiah Institute of Technology",
+  "models": {
+    "clinical": "models/clinical_model_4k.pkl",
+    "clinical_scaler": "models/clinical_scaler_4k.pkl",
+    "clinical_features": "models/clinical_feature_names_4k.json",
+    "image": "models/ultrasound_efficientnet_best.keras",
+    "fusion": "models/fusion_model_calibrated.pkl",
+    "threshold": "models/fusion_threshold.txt"
+  },
+  "performance": {
+    "clinical_auc": 0.8105,
+    "image_auc": 0.8843,
+    "fusion_auc": 0.9145,
+    "fusion_accuracy": 0.842,
+    "fusion_f1": 0.835,
+    "fusion_recall_infected": 0.787,
+    "fusion_precision": 0.837
+  },
+  "data": {
+    "clinical_features": 31,
+    "image_input_size": [
+      260,
+      260,
+      3
+    ],
+    "image_preprocessing": "elliptical_mask_clahe_v2",
+    "fusion_input": "clinical_prob + image_prob + interaction",
+    "training_samples": 4000,
+    "test_samples": 600
+  },
+  "thresholds": {
+    "fusion_optimal": 0.4835,
+    "high_confidence_positive": 0.65,
+    "high_confidence_negative": 0.35,
+    "borderline_zone": "0.35 to 0.65 \u2014 recommend further testing"
+  }
+}

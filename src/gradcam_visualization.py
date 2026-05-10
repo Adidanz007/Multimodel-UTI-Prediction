@@ -17,24 +17,46 @@ from src.utils import ensure_dir, load_config, set_global_seed, setup_logging
 LOGGER = logging.getLogger(__name__)
 
 
-def _get_last_conv_layer_name(model: tf.keras.Model) -> str:
+def _find_backbone(model: tf.keras.Model) -> tf.keras.Model:
+    for layer in model.layers:
+        if isinstance(layer, tf.keras.Model):
+            return layer
+    raise ValueError("No nested backbone model found for Grad-CAM")
+
+
+def _find_last_conv_in_model(model: tf.keras.Model) -> tf.keras.layers.Layer:
     for layer in reversed(model.layers):
         if isinstance(layer, tf.keras.layers.Conv2D):
-            return layer.name
-        if hasattr(layer, "layers"):
-            for sublayer in reversed(layer.layers):
-                if isinstance(sublayer, tf.keras.layers.Conv2D):
-                    return sublayer.name
+            return layer
     raise ValueError("No Conv2D layer found for Grad-CAM")
 
 
-def _make_gradcam_heatmap(img_array: np.ndarray, model: tf.keras.Model, last_conv_layer_name: str) -> np.ndarray:
-    grad_model = tf.keras.models.Model(
-        [model.inputs], [model.get_layer(last_conv_layer_name).output, model.output]
+def _build_classifier_head(model: tf.keras.Model, backbone: tf.keras.Model) -> tf.keras.Model:
+    backbone_idx = model.layers.index(backbone)
+    head_layers = model.layers[backbone_idx + 1 :]
+    if not head_layers:
+        raise ValueError("No classifier head layers found after backbone")
+
+    classifier_input = tf.keras.Input(shape=tuple(backbone.output.shape[1:]))
+    x = classifier_input
+    for layer in head_layers:
+        x = layer(x)
+    return tf.keras.Model(classifier_input, x)
+
+
+def _make_gradcam_heatmap(img_array: np.ndarray, model: tf.keras.Model) -> tuple[np.ndarray, str]:
+    backbone = _find_backbone(model)
+    last_conv_layer = _find_last_conv_in_model(backbone)
+    classifier_head = _build_classifier_head(model, backbone)
+
+    backbone_model = tf.keras.Model(
+        backbone.input,
+        [last_conv_layer.output, backbone.output],
     )
 
     with tf.GradientTape() as tape:
-        conv_outputs, predictions = grad_model(img_array)
+        conv_outputs, backbone_output = backbone_model(img_array)
+        predictions = classifier_head(backbone_output)
         class_channel = predictions[:, 0]
 
     grads = tape.gradient(class_channel, conv_outputs)
@@ -43,8 +65,12 @@ def _make_gradcam_heatmap(img_array: np.ndarray, model: tf.keras.Model, last_con
     heatmap = conv_outputs @ pooled_grads[..., tf.newaxis]
     heatmap = tf.squeeze(heatmap)
 
-    heatmap = tf.maximum(heatmap, 0) / tf.math.reduce_max(heatmap)
-    return heatmap.numpy()
+    heatmap = tf.maximum(heatmap, 0)
+    max_val = tf.math.reduce_max(heatmap)
+    if tf.equal(max_val, 0):
+        return np.zeros_like(heatmap.numpy()), f"{backbone.name}/{last_conv_layer.name}"
+    heatmap = heatmap / max_val
+    return heatmap.numpy(), f"{backbone.name}/{last_conv_layer.name}"
 
 
 def _load_sample_images(split_dir: str, max_images: int) -> List[Tuple[str, int]]:
@@ -75,8 +101,6 @@ def run_gradcam(config_path: str = "config/config.yaml") -> None:
     graphs_dir = config["paths"]["results_graphs_dir"]
     ensure_dir(graphs_dir)
 
-    last_conv_layer_name = _get_last_conv_layer_name(model)
-
     for idx, (image_path, label) in enumerate(samples):
         image = cv2.imread(image_path)
         if image is None:
@@ -85,7 +109,9 @@ def run_gradcam(config_path: str = "config/config.yaml") -> None:
         resized = cv2.resize(image_rgb, image_size)
         img_array = np.expand_dims(resized.astype(np.float32) / 255.0, axis=0)
 
-        heatmap = _make_gradcam_heatmap(img_array, model, last_conv_layer_name)
+        heatmap, conv_name = _make_gradcam_heatmap(img_array, model)
+        if idx == 0:
+            LOGGER.info("Using Grad-CAM conv layer: %s", conv_name)
         heatmap_resized = cv2.resize(heatmap, (image_rgb.shape[1], image_rgb.shape[0]))
         heatmap_uint8 = np.uint8(255 * heatmap_resized)
         heatmap_color = cv2.applyColorMap(heatmap_uint8, cv2.COLORMAP_JET)

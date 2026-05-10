@@ -25,7 +25,12 @@ def _predict_clinical(clinical_payload: Dict[str, object], clinical_model_path: 
 
 
 def _predict_ultrasound(image_path: str, ultrasound_model_path: str, image_size: Tuple[int, int]) -> float:
-    model = tf.keras.models.load_model(ultrasound_model_path)
+    model = tf.keras.models.load_model(ultrasound_model_path, compile=False)
+    model.compile(
+        optimizer="adam",
+        loss="binary_crossentropy",
+        metrics=["accuracy", tf.keras.metrics.AUC()],
+    )
     image = cv2.imread(image_path)
     if image is None:
         raise ValueError(f"Unable to read image at {image_path}")

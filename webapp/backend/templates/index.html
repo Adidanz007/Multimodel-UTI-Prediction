@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ app_name }}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script defer src="{{ url_for('static', filename='js/script.js') }}"></script>
+</head>
+<body>
+    <header class="topbar">
+        <div class="topbar__brand">
+            <div class="topbar__logo">UTI</div>
+            <div>
+                <p class="topbar__eyebrow">Multimodal AI system</p>
+                <h1>{{ app_name }}</h1>
+            </div>
+        </div>
+        <a class="topbar__link" href="#prediction-form">Run prediction</a>
+    </header>
+
+    <main class="page">
+        <section class="hero">
+            <div class="hero__copy">
+                <p class="hero__eyebrow">Clinical + ultrasound fusion</p>
+                <h2>Predict UTI risk from clinical inputs and an ultrasound image.</h2>
+                <p class="hero__description">
+                    Fill in the structured clinical form, upload an ultrasound image, and the multimodal
+                    model will return a prediction with the underlying result payload.
+                </p>
+                <div class="hero__stats">
+                    <div class="stat-card">
+                        <span class="stat-card__value">{{ feature_names|length }}</span>
+                        <span class="stat-card__label">Model features</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-card__value">2</span>
+                        <span class="stat-card__label">Modalities</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-card__value">1</span>
+                        <span class="stat-card__label">Prediction</span>
+                    </div>
+                </div>
+            </div>
+
+            <aside class="hero__panel">
+                <h3>How to use</h3>
+                <ol class="steps">
+                    <li>Complete the clinical form.</li>
+                    <li>Upload a urine ultrasound image.</li>
+                    <li>Review the prediction and confidence.</li>
+                </ol>
+            </aside>
+        </section>
+
+        {% if errors %}
+        <section class="alerts" aria-live="polite">
+            {% for error in errors %}
+            <div class="alert alert--error">{{ error }}</div>
+            {% endfor %}
+        </section>
+        {% endif %}
+
+        <section class="content-grid" id="prediction-form">
+            <form class="prediction-form card" action="{{ url_for('predict') }}" method="post" enctype="multipart/form-data">
+                <div class="card__header">
+                    <div>
+                        <p class="card__eyebrow">Input data</p>
+                        <h3>Clinical features and image upload</h3>
+                    </div>
+                    <button class="btn btn--primary" type="submit">Predict UTI risk</button>
+                </div>
+
+                <div class="upload-dropzone" data-upload-zone>
+                    <div class="upload-dropzone__icon">⇪</div>
+                    <div>
+                        <p class="upload-dropzone__title">Ultrasound image</p>
+                        <p class="upload-dropzone__copy">PNG, JPG, JPEG, BMP, WEBP, TIF, or TIFF</p>
+                    </div>
+                    <input id="image" name="image" class="upload-dropzone__input" type="file" accept=".png,.jpg,.jpeg,.bmp,.webp,.tif,.tiff,image/*" required>
+                </div>
+
+                <div class="form-sections">
+                    {% for section in form_sections %}
+                    <section class="form-section">
+                        <h4>{{ section.name }}</h4>
+                        <div class="field-grid">
+                            {% for field in section.fields %}
+                            <div class="field">
+                                <label for="{{ field.name }}">{{ field.label }}</label>
+
+                                {% if field.kind == 'select' %}
+                                <select id="{{ field.name }}" name="{{ field.name }}" required>
+                                    {% for option_value, option_label in field.options %}
+                                    <option value="{{ option_value }}" {% if form_values[field.name] == option_value %}selected{% endif %}>
+                                        {{ option_label }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                                {% else %}
+                                <input
+                                    id="{{ field.name }}"
+                                    name="{{ field.name }}"
+                                    type="number"
+                                    value="{{ form_values[field.name] }}"
+                                    {% if field.step %}step="{{ field.step }}"{% endif %}
+                                    {% if field.min is defined %}min="{{ field.min }}"{% endif %}
+                                    {% if field.max is defined %}max="{{ field.max }}"{% endif %}
+                                    required
+                                >
+                                {% endif %}
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </section>
+                    {% endfor %}
+                </div>
+            </form>
+
+            <aside class="results-column">
+                <section class="card result-card">
+                    <div class="card__header">
+                        <div>
+                            <p class="card__eyebrow">Prediction result</p>
+                            <h3>Model output</h3>
+                        </div>
+                    </div>
+
+                    {% if result_summary %}
+                    <div class="result-highlight">
+                        <span class="result-highlight__label">Prediction</span>
+                        <span class="result-highlight__value">{{ result_summary.prediction_label }}</span>
+                        {% if result_summary.confidence_pct %}
+                        <span class="result-highlight__meta">Confidence: {{ result_summary.confidence_pct }}</span>
+                        {% endif %}
+                    </div>
+
+                    {% if uploaded_image_url %}
+                    <div class="uploaded-image">
+                        <p class="uploaded-image__label">Uploaded ultrasound</p>
+                        <img src="{{ uploaded_image_url }}" alt="Uploaded ultrasound image">
+                    </div>
+                    {% endif %}
+
+                    <details class="raw-output" open>
+                        <summary>Raw prediction payload</summary>
+                        <pre>{{ result_summary.raw | tojson(indent=2) }}</pre>
+                    </details>
+                    {% else %}
+                    <div class="empty-state">
+                        <p class="empty-state__title">No prediction yet</p>
+                        <p class="empty-state__copy">Submit the form to see the multimodal model output here.</p>
+                    </div>
+                    {% endif %}
+                </section>
+
+                <section class="card info-card">
+                    <p class="card__eyebrow">Notes</p>
+                    <ul class="notes-list">
+                        <li>All clinical fields are mapped to the training encodings used by the 4K clinical model.</li>
+                        <li>The uploaded file is stored locally for inference and preview.</li>
+                        <li>The backend loads the multimodal predictor once per process.</li>
+                    </ul>
+                </section>
+            </aside>
+        </section>
+    </main>
+</body>
+</html>

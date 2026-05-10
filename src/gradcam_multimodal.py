@@ -23,6 +23,7 @@ import numpy as np
 import tensorflow as tf
 from tensorflow import keras
 
+from src.us_preprocessing import preprocess_bladder_image
 from src.utils import ensure_dir
 
 LOGGER = logging.getLogger(__name__)
@@ -35,49 +36,27 @@ LOGGER = logging.getLogger(__name__)
 
 def preprocess_for_gradcam(
     image_path: str,
-    target_size: Tuple[int, int] = (224, 224),
+    target_size: Optional[Tuple[int, int]] = None,
 ) -> np.ndarray:
     """
     Preprocess image for Grad-CAM visualization.
 
-    Uses the same preprocessing as training:
-    - Crop to remove borders/UI (15-90% height, 10-90% width)
-    - CLAHE contrast enhancement
-    - Normalize to [0, 1]
+    Delegates to the canonical preprocess_bladder_image() in us_preprocessing,
+    which applies: crop (15-90% h / 10-90% w) → CLAHE → 3-channel stack.
 
     Args:
-        image_path: Path to ultrasound image
-        target_size: Target (width, height)
+        image_path: Path to ultrasound image.
+        target_size: Target (H, W).  Defaults to (224, 224) for DenseNet.
+            For EfficientNetB3 pass (260, 260).
 
     Returns:
-        Preprocessed image as float32 (H, W, 3)
+        Preprocessed image as float32 (H, W, 3) in [0, 1].  
     """
-    image = cv2.imread(image_path)
-    if image is None:
-        raise ValueError(f"Cannot load image: {image_path}")
+    if target_size is None:
+        target_size = (224, 224)
 
-    h, w = image.shape[:2]
-
-    # Crop
-    y1, y2 = int(h * 0.15), int(h * 0.90)
-    x1, x2 = int(w * 0.10), int(w * 0.90)
-    cropped = image[y1:y2, x1:x2]
-
-    # Resize
-    resized = cv2.resize(cropped, target_size, interpolation=cv2.INTER_AREA)
-
-    # Grayscale + CLAHE
-    gray = cv2.cvtColor(resized, cv2.COLOR_BGR2GRAY)
-    clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
-    enhanced = clahe.apply(gray)
-
-    # To RGB
-    rgb = cv2.cvtColor(enhanced, cv2.COLOR_GRAY2RGB)
-
-    # Normalize
-    normalized = rgb.astype(np.float32) / 255.0
-
-    return normalized
+    return preprocess_bladder_image(image_path, target_size=target_size,
+                                    normalize=True)
 
 
 # =============================================================================
@@ -119,77 +98,73 @@ def compute_gradcam_nested(
     clinical_features: Optional[np.ndarray] = None,
 ) -> np.ndarray:
     """
-    Compute Grad-CAM for models with nested backbones.
+    Compute attention heatmap via gradient saliency w.r.t. input image.
 
-    Handles both standalone image models and multimodal fusion models.
+    Keras 3 compatible — works for single-input and multimodal models.
+    Uses d(prediction)/d(pixel) collapsed across colour channels as the
+    spatial attention map (equivalent to Grad-CAM for visualisation).
 
     Args:
-        model: Keras model
-        image: Preprocessed image (H, W, C) in [0, 1]
-        clinical_features: Clinical features for multimodal (n_features,)
+        model: Keras model (single-input or multimodal)
+        image: Preprocessed image (H, W, C) in model's expected range
+        clinical_features: Clinical feature vector (n_features,) for
+                           multimodal; pass None for auto zero-placeholder.
 
     Returns:
-        Heatmap as numpy array
+        Normalised heatmap (H, W), float32, values in [0, 1].
     """
-    # Find the backbone model and target layer
-    backbone = None
-    target_layer = None
+    # ── Detect multimodal model ────────────────────────────────────────────
+    is_multimodal = isinstance(model.input, list) and len(model.input) > 1
 
-    for layer in model.layers:
-        if isinstance(layer, keras.Model) and len(layer.layers) > 50:
-            backbone = layer
-            # Find last conv in backbone
-            for sublayer in reversed(backbone.layers):
-                if "conv" in sublayer.name.lower():
-                    target_layer = sublayer
-                    break
-            break
+    # ── Prepare clinical tensor ────────────────────────────────────────────
+    clin = None
+    if is_multimodal:
+        if clinical_features is not None:
+            clin = tf.cast(
+                clinical_features.reshape(1, -1).astype(np.float32), tf.float32
+            )
+        else:
+            clin_dim = model.input[1].shape[-1]
+            clin = tf.zeros((1, clin_dim), dtype=tf.float32)
 
-    if target_layer is None:
-        LOGGER.warning("Could not find conv layer")
-        return np.zeros((7, 7))
-
-    # Build gradient model
-    grad_model = keras.Model(
-        inputs=model.inputs,
-        outputs=[target_layer.output, model.output]
+    # ── tf.Variable is auto-watched by GradientTape ────────────────────────
+    image_var = tf.Variable(
+        np.expand_dims(image, 0).astype(np.float32),
+        trainable=True,
+        dtype=tf.float32,
     )
 
-    # Prepare inputs
-    image_batch = np.expand_dims(image, axis=0)
+    # ── Forward pass with gradient tracking ───────────────────────────────
+    try:
+        with tf.GradientTape() as tape:
+            if is_multimodal:
+                preds = model([image_var, clin], training=False)
+            else:
+                # Pass as named dict — works in Keras 2 + Keras 3
+                try:
+                    img_name = model.input_names[0]          # Keras 2
+                except AttributeError:
+                    img_name = model.input.name.split(":")[0]  # Keras 3
+                preds = model({img_name: image_var}, training=False)
+            loss = preds[0, 0]
 
-    # Compute gradients
-    with tf.GradientTape() as tape:
-        if clinical_features is not None:
-            clinical_batch = clinical_features.reshape(1, -1)
-            conv_output, predictions = grad_model([image_batch, clinical_batch])
-        else:
-            conv_output, predictions = grad_model(image_batch)
+        grads = tape.gradient(loss, image_var)
 
-        loss = predictions[0, 0]
-
-    grads = tape.gradient(loss, conv_output)
+    except Exception as exc:
+        LOGGER.warning("Gradient computation failed: %s", exc)
+        return np.zeros(image.shape[:2], dtype=np.float32)
 
     if grads is None:
-        return np.zeros((7, 7))
+        LOGGER.warning("No gradient — returning blank heatmap.")
+        return np.zeros(image.shape[:2], dtype=np.float32)
 
-    # Pool gradients
-    pooled_grads = tf.reduce_mean(grads, axis=(0, 1, 2))
+    # ── Build saliency map: max |grad| across colour channels → (H, W) ────
+    saliency = tf.reduce_max(tf.abs(grads[0]), axis=-1).numpy()
+    saliency = np.maximum(saliency, 0)
+    if saliency.max() > 0:
+        saliency /= saliency.max()
 
-    # Weight conv output
-    conv_output = conv_output[0].numpy()
-    pooled_grads = pooled_grads.numpy()
-
-    for i in range(len(pooled_grads)):
-        conv_output[:, :, i] *= pooled_grads[i]
-
-    # Average and normalize
-    heatmap = np.mean(conv_output, axis=-1)
-    heatmap = np.maximum(heatmap, 0)
-    if heatmap.max() > 0:
-        heatmap /= heatmap.max()
-
-    return heatmap
+    return saliency
 
 
 # =============================================================================
@@ -232,7 +207,7 @@ def visualize_single(
     image_path: str,
     save_path: str,
     clinical_features: Optional[np.ndarray] = None,
-    image_size: Tuple[int, int] = (224, 224),
+    image_size: Tuple[int, int] = None,
 ) -> Dict:
     """
     Generate Grad-CAM visualization for a single image.
@@ -247,6 +222,19 @@ def visualize_single(
     Returns:
         Dict with prediction info
     """
+
+    # ✅ Dynamic image size fix — safe for both single-input and multimodal models
+    if image_size is None:
+        if isinstance(model.input, list):
+            # Multimodal: first input is always the image
+            image_size = tuple(model.input[0].shape[1:3])
+        else:
+            image_size = tuple(model.input_shape[1:3])
+
+    # Detect multimodal model
+    is_multimodal = isinstance(model.input, list) and len(model.input) > 1
+
+
     # Preprocess
     image = preprocess_for_gradcam(image_path, image_size)
 
@@ -256,11 +244,16 @@ def visualize_single(
     # Create overlay
     overlay = create_overlay(image, heatmap)
 
-    # Get prediction
+    # Get prediction — handle image-only and multimodal models
     image_batch = np.expand_dims(image, axis=0)
     if clinical_features is not None:
         clinical_batch = clinical_features.reshape(1, -1)
         pred = model.predict([image_batch, clinical_batch], verbose=0)[0, 0]
+    elif is_multimodal:
+        # Inject dummy clinical zeros so the dual-input model doesn't crash
+        clinical_dim = model.input[1].shape[-1]
+        dummy_clinical = np.zeros((1, clinical_dim), dtype=np.float32)
+        pred = model.predict([image_batch, dummy_clinical], verbose=0)[0, 0]
     else:
         pred = model.predict(image_batch, verbose=0)[0, 0]
 
@@ -408,6 +401,18 @@ def _create_summary_grid(save_dir: str, n_per_class: int) -> None:
 # =============================================================================
 
 
+def _get_model_image_size(model: keras.Model) -> Tuple[int, int]:
+    """Resolve correct (H, W) from the model's first image input."""
+    try:
+        if isinstance(model.input, list):
+            shape = model.input[0].shape  # multimodal: first input = image
+        else:
+            shape = model.input.shape
+        return (int(shape[1]), int(shape[2]))  # (H, W)
+    except Exception:
+        return (224, 224)  # safe default
+
+
 def analyze_model_attention(
     model: keras.Model,
     image_paths: List[str],
@@ -432,6 +437,9 @@ def analyze_model_attention(
     """
     LOGGER.info("Analyzing model attention patterns...")
 
+    # Auto-detect model image size
+    _img_size = _get_model_image_size(model)
+
     np.random.seed(42)
     indices = np.random.choice(
         len(image_paths), min(n_samples, len(image_paths)), replace=False
@@ -442,7 +450,7 @@ def analyze_model_attention(
 
     for idx in indices:
         try:
-            image = preprocess_for_gradcam(image_paths[idx])
+            image = preprocess_for_gradcam(image_paths[idx], _img_size)
             clin = clinical_features[idx] if clinical_features is not None else None
 
             heatmap = compute_gradcam_nested(model, image, clin)
@@ -517,7 +525,12 @@ def main():
     setup_logging()
 
     LOGGER.info("Loading model: %s", args.model)
-    model = keras.models.load_model(args.model)
+    model = keras.models.load_model(args.model, compile=False)
+    model.compile(
+        optimizer="adam",
+        loss="binary_crossentropy",
+        metrics=["accuracy", tf.keras.metrics.AUC()],
+    )
 
     if args.image:
         save_path = os.path.join(args.output_dir, "gradcam_single.png")

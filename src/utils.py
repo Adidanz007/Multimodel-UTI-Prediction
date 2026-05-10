@@ -37,9 +37,41 @@ def set_global_seed(seed: int) -> None:
 
 
 def load_config(config_path: str = "config/config.yaml") -> Dict[str, Any]:
-    """Load YAML config into a python dictionary."""
-    with open(config_path, "r", encoding="utf-8") as file:
-        return yaml.safe_load(file)
+    """Load YAML config and resolve relative file paths to absolute paths."""
+    config_file = Path(config_path).resolve()
+    with open(config_file, "r", encoding="utf-8") as file:
+        config = yaml.safe_load(file)
+
+    # When config is in <project_root>/config/config.yaml, resolve paths from project root.
+    if config_file.parent.name.lower() == "config":
+        base_dir = config_file.parent.parent
+    else:
+        base_dir = config_file.parent
+
+    def _resolve(value: Any) -> Any:
+        if isinstance(value, str):
+            # Keep env-style placeholders untouched.
+            if value.startswith("${") and value.endswith("}"):
+                return value
+            path_obj = Path(value)
+            if path_obj.is_absolute():
+                return str(path_obj)
+            return str((base_dir / path_obj).resolve())
+        return value
+
+    if "paths" in config and isinstance(config["paths"], dict):
+        for key, value in list(config["paths"].items()):
+            config["paths"][key] = _resolve(value)
+
+    for section, key in [
+        ("clinical", "model_output"),
+        ("ultrasound", "model_output"),
+        ("fusion", "model_output"),
+    ]:
+        if section in config and isinstance(config[section], dict) and key in config[section]:
+            config[section][key] = _resolve(config[section][key])
+
+    return config
 
 
 def ensure_dir(path: str) -> None:

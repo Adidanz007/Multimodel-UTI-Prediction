@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>UTI Screening | UTI AI</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <script>
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme) { document.documentElement.setAttribute('data-theme', savedTheme); }
+    </script>
+</head>
+<body class="screening-page">
+    <nav class="navbar">
+      <a href="/" class="nav-logo">
+        <div class="nav-logo-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        </div>
+        <span class="nav-logo-text">UTI<span>AI</span></span>
+      </a>
+      <div class="nav-links">
+        <button class="theme-toggle" id="themeToggle" aria-label="Toggle Theme">
+            <svg class="sun-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+            <svg class="moon-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        </button>
+        <a href="/screening" class="active">New Screening</a>
+        <a href="/doctor">Dashboard</a>
+      </div>
+    </nav>
+
+    <div class="page-content">
+        <div class="form-section">
+            <!-- WIZARD PROGRESS -->
+            <div class="progress-track" id="progressTrack">
+                <div class="progress-step active" id="p-step-1">
+                    <div class="progress-step-circle">1</div>
+                    <div class="progress-step-label">Patient Info</div>
+                </div>
+                <div class="progress-step-line"></div>
+                <div class="progress-step" id="p-step-2">
+                    <div class="progress-step-circle">2</div>
+                    <div class="progress-step-label">Symptoms</div>
+                </div>
+                <div class="progress-step-line"></div>
+                <div class="progress-step" id="p-step-3">
+                    <div class="progress-step-circle">3</div>
+                    <div class="progress-step-label">Lab & Scan</div>
+                </div>
+            </div>
+
+            <!-- THE FORM -->
+            <form id="screeningForm" class="screening-form" method="POST" enctype="multipart/form-data">
+                
+                <!-- STEP 1 -->
+                <div class="glass-card form-step" id="step-1" style="display: block;">
+                    <div class="card-header">
+                        <div class="card-header-icon">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                        </div>
+                        <h3 class="card-header-title">Patient Information</h3>
+                    </div>
+                    <div class="card-body">
+                        <p class="step-desc" style="margin-bottom: 2rem; color: var(--text-secondary);">Enter basic patient demographics and vitals.</p>
+                        
+                        <div class="field-group">
+                            <div class="field-label">Age (years) <span class="field-normal-range">Normal: All ages</span></div>
+                            <input type="number" class="field-input" name="age" min="1" max="120" required>
+                        </div>
+                        
+                        <div class="field-group">
+                            <div class="field-label">Gender</div>
+                            <select name="gender" class="field-input" required>
+                                <option value="0">Female</option>
+                                <option value="1">Male</option>
+                            </select>
+                        </div>
+                        
+                        <div class="field-group">
+                            <div class="field-label">Temperature (°C) <span class="field-normal-range">36.5–37.5 °C</span></div>
+                            <input type="number" step="0.1" class="field-input" name="Temperature" min="35" max="42" placeholder="37.0" required>
+                            <div class="field-helper-text">Normal 36.1–37.2 degrees C. Fever threshold is 38.0 or above.</div>
+                        </div>
+
+                        <div style="margin-top: 2rem; display: flex; justify-content: flex-end;">
+                            <button type="button" class="btn-primary" onclick="nextStep()">Next Step →</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- STEP 2 -->
+                <div class="glass-card form-step" id="step-2" style="display: none;">
+                    <div class="card-header">
+                        <div class="card-header-icon">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+                        </div>
+                        <h3 class="card-header-title">Clinical Symptoms & History</h3>
+                    </div>
+                    <div class="card-body">
+                        <p class="step-desc" style="margin-bottom: 2rem; color: var(--text-secondary);">Toggle the symptoms currently experienced by the patient.</p>
+                        
+                        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1.2rem;">
+
+                            <div class="field-group toggle-group" style="display: flex; align-items: center; justify-content: space-between; background: var(--bg-secondary); padding: 0.8rem 1.2rem; border-radius: var(--radius-sm); margin: 0;">
+                                <div class="field-label" style="margin: 0; font-size: 0.78rem;">Fever</div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" name="fever" value="1">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+
+                            <div class="field-group toggle-group" style="display: flex; align-items: center; justify-content: space-between; background: var(--bg-secondary); padding: 0.8rem 1.2rem; border-radius: var(--radius-sm); margin: 0;">
+                                <div class="field-label" style="margin: 0; font-size: 0.78rem;">Burning Urination</div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" name="burning_urination" value="1">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+
+                            <div class="field-group toggle-group" style="display: flex; align-items: center; justify-content: space-between; background: var(--bg-secondary); padding: 0.8rem 1.2rem; border-radius: var(--radius-sm); margin: 0;">
+                                <div class="field-label" style="margin: 0; font-size: 0.78rem;">Back Pain</div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" name="back_pain" value="1">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+
+                            <div class="field-group toggle-group" style="display: flex; align-items: center; justify-content: space-between; background: var(--bg-secondary); padding: 0.8rem 1.2rem; border-radius: var(--radius-sm); margin: 0;">
+                                <div class="field-label" style="margin: 0; font-size: 0.78rem;">Fatigue</div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" name="fatigue" value="1">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+
+                            <div class="field-group toggle-group" style="display: flex; align-items: center; justify-content: space-between; background: var(--bg-secondary); padding: 0.8rem 1.2rem; border-radius: var(--radius-sm); margin: 0;">
+                                <div class="field-label" style="margin: 0; font-size: 0.78rem;">Abdominal Pain</div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" name="abdominal_pain" value="1">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+
+                            <div class="field-group toggle-group" style="display: flex; align-items: center; justify-content: space-between; background: var(--bg-secondary); padding: 0.8rem 1.2rem; border-radius: var(--radius-sm); margin: 0;">
+                                <div class="field-label" style="margin: 0; font-size: 0.78rem;">Diff Urinating</div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" name="diff_urinating" value="1">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+
+                            <div class="field-group toggle-group" style="display: flex; align-items: center; justify-content: space-between; background: var(--bg-secondary); padding: 0.8rem 1.2rem; border-radius: var(--radius-sm); margin: 0;">
+                                <div class="field-label" style="margin: 0; font-size: 0.78rem;">Abdominal Tenderness</div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" name="abdominal_tenderness" value="1">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+
+                            <div class="field-group toggle-group" style="display: flex; align-items: center; justify-content: space-between; background: var(--bg-secondary); padding: 0.8rem 1.2rem; border-radius: var(--radius-sm); margin: 0;">
+                                <div class="field-label" style="margin: 0; font-size: 0.78rem;">Calculus Of Urinary Tract</div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" name="Calculus_of_urinary_tract" value="1">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+
+                            <div class="field-group toggle-group" style="display: flex; align-items: center; justify-content: space-between; background: var(--bg-secondary); padding: 0.8rem 1.2rem; border-radius: var(--radius-sm); margin: 0;">
+                                <div class="field-label" style="margin: 0; font-size: 0.78rem;">Urinary Tract Infections</div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" name="Urinary_tract_infections" value="1">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+
+                        </div>
+                        <div style="margin-top: 2rem; display: flex; justify-content: space-between;">
+                            <button type="button" class="btn-outline" onclick="prevStep()">← Previous</button>
+                            <button type="button" class="btn-primary" onclick="nextStep()">Next Step →</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- STEP 3 -->
+                <div class="glass-card form-step" id="step-3" style="display: none;">
+                    <div class="card-header">
+                        <div class="card-header-icon">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 2v6a2 2 0 0 0 2 2h6M10 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V10l-6-8z"></path></svg>
+                        </div>
+                        <h3 class="card-header-title">Lab Values & Ultrasound</h3>
+                    </div>
+                    <div class="card-body">
+                        <p class="step-desc" style="margin-bottom: 2rem; color: var(--text-secondary);">Enter urinalysis test out and upload bladder ultrasound scan.</p>
+                        
+                        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+
+                            <div class="field-group" style="margin: 0;">
+                                <div class="field-label">Blood WBC</div>
+                                <input type="number" step="0.01" class="field-input" name="WBC" placeholder="7.5" required>
+                                <div class="field-helper-text">Normal range 4.5–11.0 K/µL. Elevated above 11 may indicate infection.</div>
+                            </div>
+
+                            <div class="field-group" style="margin: 0;">
+                                <div class="field-label">Blood RBC</div>
+                                <input type="number" step="0.01" class="field-input" name="RBC" placeholder="4.8" required>
+                                <div class="field-helper-text">Normal range 4.0–5.5 M/µL. Female: 4.0–5.0, Male: 4.5–5.5.</div>
+                            </div>
+
+                            <div class="field-group" style="margin: 0;">
+                                <div class="field-label">Urine Ph</div>
+                                <input type="number" step="0.01" class="field-input" name="urine_ph" placeholder="6.0" required>
+                                <div class="field-helper-text">Normal range 4.5–8.0. Alkaline above 7.5 may suggest infection.</div>
+                            </div>
+
+                            <div class="field-group" style="margin: 0;">
+                                <div class="field-label">Specific Gravity</div>
+                                <input type="number" step="0.01" class="field-input" name="specific_gravity" placeholder="1.015" required>
+                                <div class="field-helper-text">Normal range 1.005–1.030.</div>
+                            </div>
+
+                            <div class="field-group" style="margin: 0;">
+                                <div class="field-label">Urine Wbc</div>
+                                <input type="number" step="0.01" class="field-input" name="urine_wbc" placeholder="2" required>
+                                <div class="field-helper-text">Normal less than 5 per high power field. Above 5 indicates pyuria.</div>
+                            </div>
+
+                            <div class="field-group" style="margin: 0;">
+                                <div class="field-label">Urine Rbc</div>
+                                <input type="number" step="0.01" class="field-input" name="urine_rbc" placeholder="1" required>
+                                <div class="field-helper-text">Normal less than 3 per high power field. Above 3 indicates hematuria.</div>
+                            </div>
+
+                            <div class="field-group" style="margin: 0;">
+                                <div class="field-label">Urine Color</div>
+                                <select class="field-input" name="urine_color" required>
+                                    <option value="0">0 - Pale/Light Yellow</option>
+                                    <option value="1">1 - Yellow</option>
+                                    <option value="2">2 - Dark Yellow/Amber</option>
+                                    <option value="3">3 - Red/Brown (Abnormal)</option>
+                                </select>
+                            </div>
+
+                            <div class="field-group" style="margin: 0;">
+                                <div class="field-label">Urine Clarity</div>
+                                <select class="field-input" name="urine_clarity" required>
+                                    <option value="0">0 - Clear</option>
+                                    <option value="1">1 - Slightly Cloudy</option>
+                                    <option value="2">2 - Cloudy</option>
+                                    <option value="3">3 - Turbid</option>
+                                </select>
+                            </div>
+
+                        </div>
+                        
+                        <h4 style="margin-bottom: 1.2rem; font-size: 0.9rem; color: var(--text-primary);">Presence Indicators</h4>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1.2rem; margin-bottom: 2.5rem;">
+
+                            <div class="field-group toggle-group" style="display: flex; align-items: center; justify-content: space-between; background: var(--bg-secondary); padding: 0.8rem 1.2rem; border-radius: var(--radius-sm); margin: 0;">
+                                <div class="field-label" style="margin: 0; font-size: 0.78rem;">Ucx Abnormal</div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" name="UCX_abnormal" value="1">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+
+                            <div class="field-group toggle-group" style="display: flex; align-items: center; justify-content: space-between; background: var(--bg-secondary); padding: 0.8rem 1.2rem; border-radius: var(--radius-sm); margin: 0;">
+                                <div class="field-label" style="margin: 0; font-size: 0.78rem;">Urine Bacteria</div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" name="urine_bacteria" value="1">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+
+                            <div class="field-group toggle-group" style="display: flex; align-items: center; justify-content: space-between; background: var(--bg-secondary); padding: 0.8rem 1.2rem; border-radius: var(--radius-sm); margin: 0;">
+                                <div class="field-label" style="margin: 0; font-size: 0.78rem;">Urine Bilirubin</div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" name="urine_bilirubin" value="1">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+
+                            <div class="field-group toggle-group" style="display: flex; align-items: center; justify-content: space-between; background: var(--bg-secondary); padding: 0.8rem 1.2rem; border-radius: var(--radius-sm); margin: 0;">
+                                <div class="field-label" style="margin: 0; font-size: 0.78rem;">Urine Blood</div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" name="urine_blood" value="1">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+
+                            <div style="margin: 0;">
+                                <div class="field-group toggle-group" style="display: flex; align-items: center; justify-content: space-between; background: var(--bg-secondary); padding: 0.8rem 1.2rem; border-radius: var(--radius-sm); margin: 0;">
+                                    <div class="field-label" style="margin: 0; font-size: 0.78rem;">Epithelial Cells</div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" name="epithelial_cells" value="1">
+                                        <span class="toggle-slider"></span>
+                                    </label>
+                                </div>
+                                <div class="field-helper-text">Normal less than 5 per high power field.</div>
+                            </div>
+
+                            <div class="field-group toggle-group" style="display: flex; align-items: center; justify-content: space-between; background: var(--bg-secondary); padding: 0.8rem 1.2rem; border-radius: var(--radius-sm); margin: 0;">
+                                <div class="field-label" style="margin: 0; font-size: 0.78rem;">Urine Glucose</div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" name="urine_glucose" value="1">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+
+                            <div class="field-group toggle-group" style="display: flex; align-items: center; justify-content: space-between; background: var(--bg-secondary); padding: 0.8rem 1.2rem; border-radius: var(--radius-sm); margin: 0;">
+                                <div class="field-label" style="margin: 0; font-size: 0.78rem;">Urine Ketones</div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" name="urine_ketones" value="1">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+
+                            <div class="field-group toggle-group" style="display: flex; align-items: center; justify-content: space-between; background: var(--bg-secondary); padding: 0.8rem 1.2rem; border-radius: var(--radius-sm); margin: 0;">
+                                <div class="field-label" style="margin: 0; font-size: 0.78rem;">Leukocyte Esterase</div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" name="leukocyte_esterase" value="1">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+
+                            <div class="field-group toggle-group" style="display: flex; align-items: center; justify-content: space-between; background: var(--bg-secondary); padding: 0.8rem 1.2rem; border-radius: var(--radius-sm); margin: 0;">
+                                <div class="field-label" style="margin: 0; font-size: 0.78rem;">Nitrite</div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" name="nitrite" value="1">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+
+                            <div class="field-group toggle-group" style="display: flex; align-items: center; justify-content: space-between; background: var(--bg-secondary); padding: 0.8rem 1.2rem; border-radius: var(--radius-sm); margin: 0;">
+                                <div class="field-label" style="margin: 0; font-size: 0.78rem;">Urine Protein</div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" name="urine_protein" value="1">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+
+                            <div style="margin: 0;">
+                                <div class="field-group toggle-group" style="display: flex; align-items: center; justify-content: space-between; background: var(--bg-secondary); padding: 0.8rem 1.2rem; border-radius: var(--radius-sm); margin: 0;">
+                                    <div class="field-label" style="margin: 0; font-size: 0.78rem;">Urobilinogen</div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" name="urobilinogen" value="1">
+                                        <span class="toggle-slider"></span>
+                                    </label>
+                                </div>
+                                <div class="field-helper-text">Normal range 0.1–1.8 mg/dL.</div>
+                            </div>
+
+                        </div>
+
+                        <!-- IMAGE UPLOAD -->
+                        <div class="upload-zone" id="uploadZone" style="border: 2px dashed var(--border-card); padding: 2.5rem; text-align: center; border-radius: var(--radius-lg); cursor: pointer; transition: all 0.3s ease; position: relative; background: var(--bg-secondary);">
+                            <div class="upload-placeholder">
+                                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="1.5" style="margin-bottom: 1rem; opacity: 0.8;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                                <p style="color: var(--text-primary); font-weight: 500; font-size: 1rem; margin-bottom: 0.5rem;">Drag & drop ultrasound image here</p>
+                                <p style="color: var(--text-muted); font-size: 0.85rem;">or click to browse local files (JPG, PNG, DICOM converted)</p>
+                            </div>
+                            <input type="file" id="imageInput" name="image" accept="image/*" style="display:none;" required>
+                            <img id="imagePreview" src="" alt="Preview" style="display:none; max-width: 100%; max-height: 250px; margin: 0 auto; border-radius: var(--radius-sm); box-shadow: 0 4px 15px rgba(0,0,0,0.3);">
+                            <div id="fileInfo" style="display:none; margin-top: 1rem; font-size: 0.85rem; color: var(--teal); font-weight: 600;"></div>
+                        </div>
+
+                        <div style="margin-top: 2.5rem; display: flex; justify-content: space-between;">
+                            <button type="button" class="btn-outline" onclick="prevStep()">← Previous</button>
+                            <button type="button" class="btn-primary" onclick="submitScreening()" style="padding-left: 2rem; padding-right: 2rem;">Run AI Analysis 
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-left: 8px;"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+            </form>
+        </div>
+    </div>
+
+    <!-- MAIN JS -->
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>

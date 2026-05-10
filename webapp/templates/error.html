@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Error - Result Not Found</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="landing">
+    <nav class="navbar">
+        <a href="/" class="nav-logo">
+            <div class="nav-logo-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            </div>
+            <span class="nav-logo-text">UTI<span>AI</span></span>
+        </a>
+    </nav>
+    <main class="page-content" style="display: flex; justify-content: center; align-items: center; min-height: 80vh;">
+        <div class="glass-card" style="text-align: center; max-width: 500px; width: 100%;">
+            <div class="card-header" style="justify-content: center;">
+                <h3 class="card-header-title" style="color: var(--red);">Error</h3>
+            </div>
+            <div class="card-body">
+                <p style="margin-bottom: 2rem; color: var(--text-primary); font-size: 1.1rem;">Result not found or expired.</p>
+                <a href="/" class="btn-primary">← Back to Home</a>
+            </div>
+        </div>
+    </main>
+</body>
+</html>

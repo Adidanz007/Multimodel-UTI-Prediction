@@ -8,6 +8,7 @@ import os
 
 import joblib
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 import shap
 
@@ -33,17 +34,51 @@ def run_shap_explainability(config_path: str = "config/config.yaml") -> None:
     x_sample = x_eval.sample(n=sample_size, random_state=int(config["project"]["seed"]))
 
     transformed = model.named_steps["preprocessor"].transform(x_sample)
+    transformed_dense = transformed.toarray() if hasattr(transformed, "toarray") else np.asarray(transformed)
     feature_names = model.named_steps["preprocessor"].get_feature_names_out()
     estimator = model.named_steps["model"]
 
-    explainer = shap.Explainer(estimator, transformed, feature_names=feature_names)
-    shap_values = explainer(transformed)
+    estimator_name = estimator.__class__.__name__.lower()
+    is_tree_model = (
+        "forest" in estimator_name
+        or "xgb" in estimator_name
+        or "tree" in estimator_name
+        or "boost" in estimator_name
+    )
+
+    if is_tree_model:
+        explainer = shap.TreeExplainer(estimator)
+        raw_values = explainer.shap_values(transformed_dense)
+
+        if isinstance(raw_values, list):
+            values = raw_values[-1]
+        else:
+            values = raw_values
+
+        expected_value = explainer.expected_value
+        if isinstance(expected_value, (list, tuple, np.ndarray)):
+            base_value = float(np.array(expected_value).reshape(-1)[-1])
+        else:
+            base_value = float(expected_value)
+
+        shap_values = shap.Explanation(
+            values=values,
+            base_values=np.full(transformed_dense.shape[0], base_value),
+            data=transformed_dense,
+            feature_names=feature_names,
+        )
+    else:
+        def predict_positive(x: np.ndarray) -> np.ndarray:
+            return estimator.predict_proba(x)[:, 1]
+
+        explainer = shap.Explainer(predict_positive, transformed_dense, feature_names=feature_names)
+        shap_values = explainer(transformed_dense)
 
     graphs_dir = config["paths"]["results_graphs_dir"]
     ensure_dir(graphs_dir)
 
     plt.figure(figsize=(10, 6))
-    shap.summary_plot(shap_values, features=transformed, feature_names=feature_names, show=False)
+    shap.summary_plot(shap_values, features=transformed_dense, feature_names=feature_names, show=False)
     plt.tight_layout()
     plt.savefig(os.path.join(graphs_dir, "shap_summary_plot.png"), dpi=200)
     plt.close()

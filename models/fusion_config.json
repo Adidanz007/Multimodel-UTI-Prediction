@@ -1,0 +1,9 @@
+{
+  "best_strategy": "Strategy A",
+  "fusion_type": "logistic_regression",
+  "auc": 0.9125,
+  "auc_clinical": 0.8105,
+  "auc_image": 0.8843,
+  "pca_n_components": 32,
+  "fusion_input_dim": 35
+}

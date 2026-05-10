@@ -997,7 +997,7 @@ def train_pipeline(
     # Align data (simplified - in production use patient IDs)
     # Here we randomly sample clinical features to match image count
     n_images = len(image_paths)
-    n_clinical = len(clinical_features)
+    n_clinical = clinical_features.shape[0]
 
     if n_images > n_clinical:
         LOGGER.warning("More images than clinical records. Sampling with replacement.")

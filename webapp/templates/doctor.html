@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Physician Portal | UTI AI</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/style.css">
+    <script>
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme) { document.documentElement.setAttribute('data-theme', savedTheme); }
+    </script>
+</head>
+<body class="doctor-page">
+    <nav class="navbar">
+        <div class="nav-logo">
+            <a href="/" style="text-decoration:none;color:inherit;">
+                <span class="logo-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.5 4.5L19.5 9.5M5 20L19 6M9 16L4 21M15 9L9 15"/></svg></span>
+                <span class="logo-text">UTI<span class="logo-accent">AI</span> Physician</span>
+            </a>
+        </div>
+        <div class="nav-links">
+            <button class="theme-toggle" id="themeToggle" aria-label="Toggle Theme">
+                <svg class="sun-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+                <svg class="moon-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+            </button>
+            <a href="/" class="btn-outline">Logout</a>
+        </div>
+    </nav>
+
+    <div class="page-content"><div class="container mt-navbar">
+        <h1 class="page-title">Recent Automated Screenings</h1>
+
+        <div class="table-container">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Date & Time</th>
+                        <th>Patient ID</th>
+                        <th>Age</th>
+                        <th>Gender</th>
+                        <th>Fusion Score</th>
+                        <th>Prediction</th>
+                        <th>Urgency</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for p in patients %}
+                    <tr>
+                        <td>
+                            {% set ts = p.get('timestamp', '1970-01-01T00:00:00') %}
+                            {{ ts.split('T')[0] }}<br><small>{{ ts.split('T')[1] }}</small>
+                        </td>
+                        <td>{{ p.get('id', 'UNKNOWN')[-8:] }}</td>
+                        <td>{{ p.get('patient_age', 'N/A') }}</td>
+                        <td>{{ p.get('patient_gender', 'N/A') }}</td>
+                        <td>
+                            {% set ul = p.get('urgency_level', {'color': '#666', 'level': 'UNKNOWN'}) %}
+                            <div class="score-pill" style="border-color:{{ ul.color }}; color:{{ ul.color }}">
+                                {{ "%.1f"|format(p.get('fusion_score', 0) * 100) }}%
+                            </div>
+                        </td>
+                        <td>
+                            {% set pred = p.get('prediction', 'Unknown') %}
+                            <span class="status-badge {{ 'positive' if pred == 'UTI Positive' else 'negative' }}">
+                                {{ pred }}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="status-tag" style="background:{{ ul.color }}20; color:{{ ul.color }}">
+                                {{ ul.level }}
+                            </span>
+                        </td>
+                        <td>
+                            <a href="/result/{{ p.get('id', '') }}" class="btn-sm btn-primary">View</a>
+                            <a href="/api/report/{{ p.get('id', '') }}" class="btn-sm btn-outline">PDF</a>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="8" style="text-align: center; padding: 2rem;">No recent screenings found.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+</body>
+</html>
