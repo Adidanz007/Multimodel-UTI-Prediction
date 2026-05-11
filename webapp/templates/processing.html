@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,126 +11,141 @@
         if (savedTheme) { document.documentElement.setAttribute('data-theme', savedTheme); }
     </script>
 </head>
-<body class="processing-page">
-    <main class="page-content" style="display: flex; justify-content: center; align-items: center; min-height: 100vh; padding-top: 64px; padding-bottom: 0;">
-    <div class="processing-container">
-        <div class="processing-card">
-            <div class="processing-brain">
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
-            </div>
-            <h2 style="margin-bottom: 8px;">AI Analysis in Progress</h2>
-            <p style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 2rem;">Analyzing clinical biomarkers and ultrasound imaging...</p>
-            
-            <div class="processing-step-list" id="processingSteps">
-                <div class="processing-step pending" id="ps-1">
-                    <div class="step-indicator"></div> <span>Form data received</span>
-                </div>
-                <div class="processing-step pending" id="ps-2">
-                    <div class="step-indicator"></div> <span>Analyzing clinical biomarkers...</span>
-                </div>
-                <div class="processing-step pending" id="ps-3">
-                    <div class="step-indicator"></div> <span>Processing ultrasound image...</span>
-                </div>
-                <div class="processing-step pending" id="ps-4">
-                    <div class="step-indicator"></div> <span>Running EfficientNetB3...</span>
-                </div>
-                <div class="processing-step pending" id="ps-5">
-                    <div class="step-indicator"></div> <span>Running multimodal fusion...</span>
-                </div>
-                <div class="processing-step pending" id="ps-6">
-                    <div class="step-indicator"></div> <span>Generating Grad-CAM heatmap...</span>
-                </div>
-                <div class="processing-step pending" id="ps-7">
-                    <div class="step-indicator"></div> <span>Report ready</span>
-                </div>
-            </div>
 
-            <div style="margin-top: 2rem;">
-                <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-                    <span style="color: var(--text-secondary); font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Analysis Progress</span>
-                    <span id="procPercentText" style="color: var(--teal); font-size: 0.9rem; font-weight: 700; font-family: var(--font-mono);">0%</span>
+<body class="processing-page">
+    <main class="page-content"
+        style="display: flex; justify-content: center; align-items: center; min-height: 100vh; padding-top: 64px; padding-bottom: 0;">
+        <div class="processing-container">
+            <div class="processing-card">
+                <div class="processing-brain">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="16" x2="12" y2="12"></line>
+                        <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                    </svg>
                 </div>
-                <div class="progress-bar-wrap processing-bar" style="height: 8px; background: var(--border-subtle); border-radius: 100px; overflow: hidden; width: 100%;">
-                    <div class="progress-bar" id="procProgressBar" style="height: 100%; width: 0%; background: linear-gradient(90deg, var(--teal), var(--purple)); transition: width 0.1s linear;"></div>
+                <h2 style="margin-bottom: 8px;">AI Analysis in Progress</h2>
+                <p style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 2rem;">Analyzing clinical
+                    biomarkers and ultrasound imaging...</p>
+
+                <div class="processing-step-list" id="processingSteps">
+                    <div class="processing-step pending" id="ps-1">
+                        <div class="step-indicator"></div> <span>Form data received</span>
+                    </div>
+                    <div class="processing-step pending" id="ps-2">
+                        <div class="step-indicator"></div> <span>Analyzing clinical biomarkers...</span>
+                    </div>
+                    <div class="processing-step pending" id="ps-3">
+                        <div class="step-indicator"></div> <span>Processing ultrasound image...</span>
+                    </div>
+                    <div class="processing-step pending" id="ps-4">
+                        <div class="step-indicator"></div> <span>Running EfficientNetB3...</span>
+                    </div>
+                    <div class="processing-step pending" id="ps-5">
+                        <div class="step-indicator"></div> <span>Running multimodal fusion...</span>
+                    </div>
+                    <div class="processing-step pending" id="ps-6">
+                        <div class="step-indicator"></div> <span>Generating Grad-CAM heatmap...</span>
+                    </div>
+                    <div class="processing-step pending" id="ps-7">
+                        <div class="step-indicator"></div> <span>Report ready</span>
+                    </div>
+                </div>
+
+                <div style="margin-top: 2rem;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                        <span
+                            style="color: var(--text-secondary); font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Analysis
+                            Progress</span>
+                        <span id="procPercentText"
+                            style="color: var(--teal); font-size: 0.9rem; font-weight: 700; font-family: var(--font-mono);">0%</span>
+                    </div>
+                    <div class="progress-bar-wrap processing-bar"
+                        style="height: 8px; background: var(--border-subtle); border-radius: 100px; overflow: hidden; width: 100%;">
+                        <div class="progress-bar" id="procProgressBar"
+                            style="height: 100%; width: 0%; background: linear-gradient(90deg, var(--teal), var(--purple)); transition: width 0.1s linear;">
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
 
-    <script>
-        // Use result ID from template variable
-        const resultId = "{{ result_id }}";
+        <script>
+            // Use result ID from template variable
+            const resultId = "{{ result_id }}";
 
-        if (!resultId) {
-            window.location.href = '/';
-        }
-
-        const steps = [
-            { id: 'ps-1', text: 'Form data received', time: 500 },
-            { id: 'ps-2', text: 'Analyzing clinical biomarkers...', time: 800 },
-            { id: 'ps-3', text: 'Processing ultrasound image...', time: 1200 },
-            { id: 'ps-4', text: 'Running EfficientNetB3...', time: 1500 },
-            { id: 'ps-5', text: 'Running multimodal fusion...', time: 500 },
-            { id: 'ps-6', text: 'Generating Grad-CAM heatmap...', time: 1000 },
-            { id: 'ps-7', text: 'Report ready', time: 300 }
-        ];
-
-        let currentStep = 0;
-        const totalDuration = steps.reduce((a, b) => a + b.time, 0);
-
-        function updateStep(index) {
-            if (index > 0) {
-                const prev = document.getElementById(steps[index-1].id);
-                prev.className = 'processing-step done';
-                
-                let text = steps[index-1].text;
-                if (text.includes('biomarkers')) text = 'Clinical analysis complete';
-                if (text.includes('Processing')) text = 'Image preprocessing complete';
-                if (text.includes('EfficientNetB3')) text = 'Image analysis complete';
-                if (text.includes('fusion')) text = 'Fusion complete';
-                
-                prev.innerHTML = '<div class="step-indicator"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></div> <span>' + text + '</span>';
+            if (!resultId) {
+                window.location.href = '/';
             }
 
-            if (index < steps.length) {
-                const curr = document.getElementById(steps[index].id);
-                curr.className = 'processing-step active';
-                
-                setTimeout(() => {
-                    updateStep(index + 1);
-                }, steps[index].time);
-            } else {
-                const checkResult = () => {
-                    fetch('/api/check-result/' + resultId)
-                        .then(r => r.json())
-                        .then(data => {
-                            if (data.ready) {
-                                window.location.href = '/result/' + resultId;
-                            } else {
-                                setTimeout(checkResult, 1000);
-                            }
-                        }).catch(() => setTimeout(checkResult, 1000));
-                };
-                checkResult();
+            const steps = [
+                { id: 'ps-1', text: 'Form data received', time: 500 },
+                { id: 'ps-2', text: 'Analyzing clinical biomarkers...', time: 800 },
+                { id: 'ps-3', text: 'Processing ultrasound image...', time: 1200 },
+                { id: 'ps-4', text: 'Running EfficientNetB3...', time: 1500 },
+                { id: 'ps-5', text: 'Running multimodal fusion...', time: 500 },
+                { id: 'ps-6', text: 'Generating Grad-CAM heatmap...', time: 1000 },
+                { id: 'ps-7', text: 'Report ready', time: 300 }
+            ];
+
+            let currentStep = 0;
+            const totalDuration = steps.reduce((a, b) => a + b.time, 0);
+
+            function updateStep(index) {
+                if (index > 0) {
+                    const prev = document.getElementById(steps[index - 1].id);
+                    prev.className = 'processing-step done';
+
+                    let text = steps[index - 1].text;
+                    if (text.includes('biomarkers')) text = 'Clinical analysis complete';
+                    if (text.includes('Processing')) text = 'Image preprocessing complete';
+                    if (text.includes('EfficientNetB3')) text = 'Image analysis complete';
+                    if (text.includes('fusion')) text = 'Fusion complete';
+
+                    prev.innerHTML = '<div class="step-indicator"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></div> <span>' + text + '</span>';
+                }
+
+                if (index < steps.length) {
+                    const curr = document.getElementById(steps[index].id);
+                    curr.className = 'processing-step active';
+
+                    setTimeout(() => {
+                        updateStep(index + 1);
+                    }, steps[index].time);
+                } else {
+                    const checkResult = () => {
+                        fetch('/api/check-result/' + resultId)
+                            .then(r => r.json())
+                            .then(data => {
+                                if (data.ready) {
+                                    window.location.href = '/result/' + resultId;
+                                } else {
+                                    setTimeout(checkResult, 1000);
+                                }
+                            }).catch(() => setTimeout(checkResult, 1000));
+                    };
+                    checkResult();
+                }
             }
-        }
 
-        // Run progress bar
-        let startTime = Date.now();
-        const bar = document.getElementById('procProgressBar');
-        const percentText = document.getElementById('procPercentText');
-        const interval = setInterval(() => {
-            let elapsed = Date.now() - startTime;
-            let progress = Math.min((elapsed / totalDuration) * 100, 100);
-            bar.style.width = progress + '%';
-            if (percentText) percentText.textContent = Math.round(progress) + '%';
-            if (progress >= 100) clearInterval(interval);
-        }, 50);
+            // Run progress bar
+            let startTime = Date.now();
+            const bar = document.getElementById('procProgressBar');
+            const percentText = document.getElementById('procPercentText');
+            const interval = setInterval(() => {
+                let elapsed = Date.now() - startTime;
+                let progress = Math.min((elapsed / totalDuration) * 100, 100);
+                bar.style.width = progress + '%';
+                if (percentText) percentText.textContent = Math.round(progress) + '%';
+                if (progress >= 100) clearInterval(interval);
+            }, 50);
 
-        // Start steps pipeline
-        updateStep(0);
-    </script>
-    </div>
+            // Start steps pipeline
+            updateStep(0);
+        </script>
+        </div>
     </main>
 </body>
+
 </html>
